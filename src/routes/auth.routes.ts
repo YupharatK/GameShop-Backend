@@ -1,13 +1,15 @@
 // src/routes/auth.routes.ts
 import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller.js';
-import upload from '../middleware/upload.middleware.js'; // Import middleware ของเรา
+import { register } from '../controllers/auth.controller.js';
+import upload from '../middleware/upload.middleware.js';
 
 const router = Router();
 
-// เมื่อมี request มาที่ path นี้
-// 1. multer จะทำงานก่อน (upload.single) เพื่อจัดการไฟล์ที่ชื่อ 'profileImage'
-// 2. ถ้าไฟล์ผ่าน middleware, Express จะเรียก AuthController.register ต่อไป
-router.post('/auth/register', upload.single('profileImage'), AuthController.register);
+// Middleware 'upload.single('profile_image')' จะทำงานก่อนฟังก์ชัน 'register'
+// 'profile_image' คือชื่อ field ของไฟล์ที่ Front-end จะต้องส่งมา
+router.post('/register', upload.single('profile_image'), register);
+
+// คุณอาจจะมี route สำหรับ login ที่นี่ด้วย
+// router.post('/login', login);
 
 export default router;
