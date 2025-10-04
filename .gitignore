@@ -1,0 +1,18 @@
+# Dependencies
+/node_modules
+
+# Compiled TypeScript files
+/dist
+
+# Environment variables file
+# !! สำคัญมาก: ห้าม commit ไฟล์นี้เด็ดขาดเพราะมีรหัสผ่าน !!
+.env
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode
+.idea
