@@ -11,6 +11,7 @@ export const createUserService = async (userData: any) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   const newUser = {
+    id: Date.now(), // คุณอาจจะใช้ UUID หรือวิธีอื่นในการสร้าง ID
     username,
     email,
     password: hashedPassword,
@@ -24,6 +25,7 @@ export const createUserService = async (userData: any) => {
   try {
     // 2. เรียกใช้ .query() ได้โดยตรง ไม่ต้องมี .promise() อีกต่อไป
     const [result] = await pool.query(sql, [
+      newUser.id,
       newUser.username,
       newUser.email,
       newUser.password,

@@ -4,88 +4,88 @@ import { authenticateUser, createUserService } from '../services/user.service.js
 import jwt from 'jsonwebtoken';
 
 export const register = async (req: Request, res: Response) => {
-  try {
-    const { username, email, password } = req.body;
-    
-    // req.file จะถูกสร้างขึ้นโดย multer middleware
-    // เราจะเก็บ path ของไฟล์ที่ถูกบันทึกไว้
-    const profileImagePath = req.file ? req.file.path : null;
+  try {
+    const { username, email, password } = req.body;
+    const profileImagePath = req.file ? req.file.path : null;
 
-    // ตรวจสอบข้อมูลเบื้องต้น
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'Username, email, and password are required.' });
-    }
-    
-    // ถ้าบังคับให้อัปโหลดรูป
-    if (!profileImagePath) {
-      return res.status(400).json({ message: 'Profile image is required.' });
-    }
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'Username, email, and password are required.' });
+    }
+    if (!profileImagePath) {
+      return res.status(400).json({ message: 'Profile image is required.' });
+    }
 
-    // ส่ง path ของรูปภาพไปให้ service ด้วย
-    const newUser = await createUserService({ 
-      username, 
-      email, 
-      password, 
-      profileImage: profileImagePath 
-    });
+    const newUser = await createUserService({ 
+      username, 
+      email, 
+      password, 
+      profileImage: profileImagePath 
+    });
 
-    // ส่ง Response กลับไปหา Front-end
-    return res.status(201).json({ message: 'User registered successfully!', user: newUser });
+    // ✨ สร้าง Object ที่ปลอดภัยเพื่อส่งกลับ
+    const safeUser = {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        profile_image: newUser.profile_image
+    };
 
-  } catch (error: any) {
-    // จัดการ Error (เช่น username หรือ email ซ้ำ)
-    console.error('Registration Error:', error);
-    // คุณอาจจะเพิ่ม Logic ตรวจสอบ error code จาก database ที่นี่
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'Username or email already exists.' });
-    }
-    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
-  }
+    return res.status(201).json({ message: 'User registered successfully!', user: safeUser });
+
+  } catch (error: any) {
+    console.error('Registration Error:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: 'Username or email already exists.' });
+    }
+    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
 };
 
-//Login function
 export const login = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-    // ตรวจสอบว่าส่ง email และ password มาครบหรือไม่
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    const user = await authenticateUser(email, password);
+
+    // ✨ ตรวจสอบ JWT Secret Key เพื่อความปลอดภัย
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        console.error('JWT_SECRET is not set in environment variables!');
+        return res.status(500).json({ message: 'Internal Server Error: Server configuration is incomplete.' });
     }
 
-    // เรียก service เพื่อยืนยันตัวตน
-    const user = await authenticateUser(email, password);
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      jwtSecret,
+      { expiresIn: '1h' }
+    );
 
-    // ถ้า authenticateUser คืนค่ามาได้ แสดงว่า login ถูกต้อง
-    // สร้าง JWT Token
-    const token = jwt.sign(
-      { userId: user.id, role: user.role }, // Payload ที่จะเก็บใน token
-      process.env.JWT_SECRET || 'your_default_secret_key', // Secret Key
-      { expiresIn: '1h' } // Token หมดอายุใน 1 ชั่วโมง
-    );
+    const redirectTo = user.role === 'ADMIN' ? '/dashboard' : '/homepage';
 
-    // ตรวจสอบ role เพื่อกำหนดหน้าที่จะ redirect ไป
-    const redirectTo = user.role === 'ADMIN' ? '/dashboard' : '/homepage';
+    return res.status(200).json({
+      message: 'Login successful!',
+      token: token,
+      redirectTo: redirectTo,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        // ✨ เพิ่ม profile_image เข้ามา
+        profile_image: user.profile_image
+      }
+    });
 
-    // ส่ง token และข้อมูล user (ยกเว้นรหัสผ่าน) กลับไป
-    return res.status(200).json({
-      message: 'Login successful!',
-      token: token,
-      redirectTo: redirectTo,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }
-    });
-
-  } catch (error: any) {
-    console.error('Login Error:', error);
-    // ถ้า service โยน error มา (เช่น รหัสผ่านผิด, ไม่พบ user)
-    if (error.message === 'Invalid credentials') {
-        return res.status(401).json({ message: 'Invalid email or password.' });
-    }
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
+  } catch (error: any) {
+    console.error('Login Error:', error);
+    if (error.message === 'Invalid credentials') {
+        return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
 };
