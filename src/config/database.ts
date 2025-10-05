@@ -14,7 +14,9 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || '',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,              // ไม่จำกัดคิวรอ connection
+  idleTimeout: 60000,         // ตัด connection ที่ไม่ได้ใช้งานทิ้งใน 1 นาที (ป้องกัน stale connections)
+  enableKeepAlive: true       // เปิดใช้งาน keep-alive เพื่อรักษาการเชื่อมต่อ
 });
 
 // ส่วนนี้เป็นโค้ดสำหรับทดสอบว่าสามารถเชื่อมต่อกับฐานข้อมูลได้สำเร็จหรือไม่
