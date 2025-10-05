@@ -42,3 +42,37 @@ export const createUserService = async (userData: any) => {
   const { password: _, ...userToReturn } = newUser;
   return userToReturn;
 };
+
+export const authenticateUser = async (email: string, password_plain: string) => {
+  // 1. ค้นหาผู้ใช้ด้วย email
+  const sql = "SELECT * FROM users WHERE email = ?";
+  
+  // ใช้ try...catch เพื่อความปลอดภัย
+  try {
+    const [rows]: any[] = await pool.query(sql, [email]);
+
+    // 2. ตรวจสอบว่ามีผู้ใช้นี้ในระบบหรือไม่
+    if (rows.length === 0) {
+      // ไม่พบผู้ใช้ -> โยน Error
+      throw new Error('Invalid credentials');
+    }
+
+    const user = rows[0];
+
+    // 3. เปรียบเทียบรหัสผ่านที่ผู้ใช้ส่งมา กับ hash ในฐานข้อมูล
+    const isMatch = await bcrypt.compare(password_plain, user.password);
+
+    if (!isMatch) {
+      // ถ้ารหัสผ่านไม่ตรงกัน -> โยน Error
+      throw new Error('Invalid credentials');
+    }
+
+    // 4. ถ้ารหัสผ่านถูกต้อง ให้ลบ property password ออกก่อนส่งข้อมูลกลับ
+    const { password, ...userToReturn } = user;
+    return userToReturn;
+
+  } catch (dbError) {
+    // ส่งต่อ error ที่เกิดขึ้น
+    throw dbError;
+  }
+};
