@@ -65,7 +65,7 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '1h' }
     );
 
-    const redirectTo = user.role === 'ADMIN' ? '/dashboard' : '/homepage';
+    const redirectTo = user.role === 'ADMIN' ? '/admin/dashboard' : '/homepage';
 
     return res.status(200).json({
       message: 'Login successful!',
