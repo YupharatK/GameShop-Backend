@@ -4,45 +4,45 @@ import bcrypt from 'bcrypt';
 import pool from '../config/database.js';
 
 export const createUserService = async (userData: any) => {
-  const { username, email, password, profileImage } = userData;
+  const { username, email, password, profileImage } = userData;
 
-  // ... (ส่วนของการ hash รหัสผ่านเหมือนเดิม)
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-  const newUser = {
-    id: Date.now(), // คุณอาจจะใช้ UUID หรือวิธีอื่นในการสร้าง ID
-    username,
-    email,
-    password: hashedPassword,
-    profile_image: profileImage,
-    role: 'USER',
-    wallet_balance: 0.00
-  };
+  // --- ส่วนบันทึกข้อมูลลง Database (MySQL) ---
+  // 1. SQL INSERT ไม่ต้องมีคอลัมน์ id
+  const sql = "INSERT INTO users (username, email, password, profile_image, role, wallet_balance) VALUES (?, ?, ?, ?, ?, ?)";
+  
+  try {
+    // 2. ส่งข้อมูลไป 6 ค่า (ไม่ต้องส่ง id)
+    const [result]: any = await pool.query(sql, [
+      username,
+      email,
+      hashedPassword,
+      profileImage,
+      'USER',   // กำหนดค่า role โดยตรง
+      0.00      // กำหนดค่า wallet โดยตรง
+    ]);
+    
+    // 3. ดึง ID ที่ Database สร้างขึ้นมาใหม่ จากผลลัพธ์ของการ query
+    const newUserId = result.insertId;
 
-  // --- ส่วนบันทึกข้อมูลลง Database (MySQL) ---
-  const sql = "INSERT INTO users (username, email, password, profile_image, role, wallet_balance) VALUES (?, ?, ?, ?, ?, ?)";
-  try {
-    // 2. เรียกใช้ .query() ได้โดยตรง ไม่ต้องมี .promise() อีกต่อไป
-    const [result] = await pool.query(sql, [
-      newUser.id,
-      newUser.username,
-      newUser.email,
-      newUser.password,
-      newUser.profile_image,
-      newUser.role,
-      newUser.wallet_balance
-    ]);
-    // คุณสามารถใช้ result.insertId ได้ถ้าต้องการ
-  } catch (dbError) {
-    // ส่ง error กลับไปให้ controller จัดการ
-    throw dbError;
-  }
+    // 4. สร้าง Object ที่จะส่งกลับ โดยใช้ ID จริงจาก Database
+    const userToReturn = {
+        id: newUserId,
+        username: username,
+        email: email,
+        profile_image: profileImage,
+        role: 'USER',
+        wallet_balance: 0.00
+    };
 
-  console.log('User data to be inserted:', newUser);
+    return userToReturn; // 5. ส่ง object ที่สมบูรณ์กลับไป
 
-  const { password: _, ...userToReturn } = newUser;
-  return userToReturn;
+  } catch (dbError) {
+    console.error("Database error in createUserService:", dbError);
+    throw dbError;
+  }
 };
 
 export const authenticateUser = async (email: string, password_plain: string) => {
