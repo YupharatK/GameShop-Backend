@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 // 1. Import pool ที่เรารองรับ promise อยู่แล้ว จากไฟล์ config
 import pool from '../config/database.js';
+import type { UserUpdateData } from '../types/user.types.js'; 
 
 export const createUserService = async (userData: any) => {
   const { username, email, password, profileImage } = userData;
@@ -77,6 +78,46 @@ export const authenticateUser = async (email: string, password_plain: string) =>
 
   } catch (dbError) {
     // ส่งต่อ error ที่เกิดขึ้น
+    throw dbError;
+  }
+};
+
+export const updateUserService = async (userId: number, dataToUpdate: UserUpdateData) => {
+  const { username, email, profile_image_url } = dataToUpdate;
+  
+  const fieldsToUpdate = [];
+  const values = [];
+
+  if (username) {
+    fieldsToUpdate.push("username = ?");
+    values.push(username);
+  }
+  if (email) {
+    fieldsToUpdate.push("email = ?");
+    values.push(email);
+  }
+  if (profile_image_url) {
+    fieldsToUpdate.push("profile_image = ?");
+    values.push(profile_image_url);
+  }
+
+  if (fieldsToUpdate.length === 0) {
+    const [rows]: any[] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
+    const { password, ...userToReturn } = rows[0];
+    return userToReturn;
+  }
+
+  values.push(userId);
+  const sql = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+
+  try {
+    await pool.query(sql, values);
+    const [rows]: any[] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
+    const { password, ...updatedUser } = rows[0];
+    return updatedUser;
+
+  } catch (dbError) {
+    console.error("Database error in updateUserService:", dbError);
     throw dbError;
   }
 };

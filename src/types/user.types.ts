@@ -5,3 +5,9 @@ export interface UserRegistrationData {
   password_hash: string;
   profile_image_url: string;
 }
+
+export interface UserUpdateData {
+  username?: string;
+  email?: string;
+  profile_image_url?: string;
+}
