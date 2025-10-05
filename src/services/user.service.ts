@@ -68,10 +68,12 @@ export const authenticateUser = async (email: string, password_plain: string) =>
       // ถ้ารหัสผ่านไม่ตรงกัน -> โยน Error
       throw new Error('Invalid credentials');
     }
-
+    user.wallet_balance = parseFloat(user.wallet_balance);
     // 4. ถ้ารหัสผ่านถูกต้อง ให้ลบ property password ออกก่อนส่งข้อมูลกลับ
     const { password, ...userToReturn } = user;
     return userToReturn;
+
+    
 
   } catch (dbError) {
     // ส่งต่อ error ที่เกิดขึ้น
