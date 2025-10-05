@@ -16,6 +16,9 @@ app.use(express.urlencoded({ extended: true })); // สำหรับอ่า�
 // ทำให้สามารถเข้าถึงไฟล์ได้ผ่าน URL เช่น http://your-api.com/public/uploads/filename.jpg
 app.use('/public', express.static('public'));
 
+app.get('/', (req, res) => {
+  res.send('<h1>Welcome to the GameShop API!</h1><p>Server is running correctly.</p>');
+});
 // API Routes
 app.use('/api/auth', authRoutes);
 // app.use('/api/users', userRoutes); // ถ้ามี
