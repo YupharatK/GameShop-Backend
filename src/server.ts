@@ -4,6 +4,8 @@ import express from 'express';
 import cors from 'cors'; 
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import gameRoutes from './routes/game.routes.js';
+import rankingRoutes from './routes/ranking.routes.js';
 // import userRoutes from './routes/user.routes'; // ถ้ามี
 
 const app = express();
@@ -18,6 +20,8 @@ app.use(express.urlencoded({ extended: true })); // สำหรับอ่า�
 // ทำให้สามารถเข้าถึงไฟล์ได้ผ่าน URL เช่น http://your-api.com/public/uploads/filename.jpg
 app.use('/public', express.static('public'));
 app.use('/api/users', userRoutes);
+app.use('/api/games', gameRoutes);
+app.use('/api/rankings', rankingRoutes);
 
 app.get('/', (req, res) => {
   res.send('<h1>Welcome to the GameShop API!</h1><p>Server is running correctly.</p>');
