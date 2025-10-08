@@ -26,5 +26,6 @@ router.patch('/:id', adminMiddleware, upload.single('game_image'), updateGame);
 // DELETE /api/games/:id -> ลบเกม
 router.delete('/:id', adminMiddleware, deleteGame);
 
-router.get('/:userId', getUserGames);
+router.get('/users/:userId', getUserGames);
+
 export default router;

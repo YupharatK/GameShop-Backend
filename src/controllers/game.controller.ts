@@ -83,13 +83,11 @@ export const deleteGame = async (req: Request, res: Response) => {
 export const getUserGames = async (req: Request, res: Response) => {
   try {
     const userId = Number(req.params.userId);
-    if (!Number.isFinite(userId)) {
-      return res.status(400).json({ message: 'Invalid userId' });
-    }
+    if (!Number.isFinite(userId)) return res.status(400).json({ message: 'Invalid userId' });
     const games = await getGamesByUserService(userId);
     return res.status(200).json(games);
-  } catch (error) {
-    console.error('getUserGames error:', error);
+  } catch (e) {
+    console.error('getUserGames error:', e);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
