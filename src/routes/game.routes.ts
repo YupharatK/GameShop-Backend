@@ -1,6 +1,6 @@
 // src/routes/game.routes.ts
 import { Router } from 'express';
-import { createGame, getAllGames, updateGame, deleteGame } from '../controllers/game.controller.js';
+import { createGame, getAllGames, updateGame, deleteGame, getUserGames } from '../controllers/game.controller.js';
 import { adminMiddleware } from '../middleware/admin.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 
@@ -26,4 +26,5 @@ router.patch('/:id', adminMiddleware, upload.single('game_image'), updateGame);
 // DELETE /api/games/:id -> ลบเกม
 router.delete('/:id', adminMiddleware, deleteGame);
 
+router.get('/:userId', getUserGames);
 export default router;

@@ -4,7 +4,8 @@ import {
   createGameService, 
   getAllGamesService, 
   updateGameService,
-  deleteGameService 
+  deleteGameService, 
+  getGamesByUserService
 } from '../services/game.service.js';
 
 
@@ -75,6 +76,20 @@ export const deleteGame = async (req: Request, res: Response) => {
     await deleteGameService(parseInt(id, 10));
     return res.status(200).json({ message: 'Game deleted successfully!' });
   } catch (error: any) {
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+export const getUserGames = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.userId);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ message: 'Invalid userId' });
+    }
+    const games = await getGamesByUserService(userId);
+    return res.status(200).json(games);
+  } catch (error) {
+    console.error('getUserGames error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

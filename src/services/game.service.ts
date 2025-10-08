@@ -96,3 +96,25 @@ export const deleteGameService = async (gameId: number) => {
     connection.release();
   }
 };
+
+export const getGamesByUserService = async (userId: number) => {
+  const sql = `
+    SELECT
+      g.id,
+      g.name,
+      g.price,
+      g.image_url,
+      g.description,
+      g.release_date,
+      g.created_at,
+      gt.name        AS game_type,
+      ul.purchase_date
+    FROM UserLibrary ul
+    JOIN games g        ON g.id = ul.game_id
+    JOIN game_types gt  ON gt.id = g.type_id
+    WHERE ul.user_id = ?
+    ORDER BY ul.purchase_date DESC, g.created_at DESC
+  `;
+  const [rows] = await pool.query(sql, [userId]);
+  return rows; // [{ id, name, ..., game_type, purchase_date }, ...]
+};
