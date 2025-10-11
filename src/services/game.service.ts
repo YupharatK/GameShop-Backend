@@ -133,3 +133,27 @@ export const searchGamesService = async (searchTerm: string) => {
     throw error;
   }
 };
+
+// ฟังก์ชันสำหรับดึงเกมตาม ID
+export const getGameByIdService = async (gameId: number) => {
+  const sql = `
+    SELECT 
+      g.*, 
+      gt.name as genre_name,
+      r.rank_position
+    FROM games g
+    LEFT JOIN game_types gt ON g.type_id = gt.id
+    LEFT JOIN rankings r ON g.id = r.game_id
+    WHERE g.id = ?
+  `;
+  try {
+    const [rows]: any[] = await pool.query(sql, [gameId]);
+    if (rows.length === 0) {
+      return null; // ไม่พบเกม
+    }
+    return rows[0]; // คืนค่าเกมที่พบ
+  } catch (error) {
+    console.error("Error fetching game by ID:", error);
+    throw error;
+  }
+};

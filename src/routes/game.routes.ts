@@ -1,6 +1,6 @@
 // src/routes/game.routes.ts
 import { Router } from 'express';
-import { createGame, getAllGames, updateGame, deleteGame, getUserGames,searchGames } from '../controllers/game.controller.js';
+import { createGame, getAllGames, updateGame, deleteGame, getUserGames,searchGames, getGameById} from '../controllers/game.controller.js';
 import { adminMiddleware } from '../middleware/admin.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 
@@ -28,6 +28,9 @@ router.patch('/:id', adminMiddleware, upload.single('game_image'), updateGame);
 
 // DELETE /api/games/:id -> ลบเกม
 router.delete('/:id', adminMiddleware, deleteGame);
+
+// GET /api/games/:id -> ดึงข้อมูลเกมโดย ID
+router.get('/:id', getGameById);
 
 router.get('/users/:userId', getUserGames);
 

@@ -6,7 +6,8 @@ import {
   updateGameService,
   deleteGameService, 
   getGamesByUserService,
-  searchGamesService
+  searchGamesService,
+  getGameByIdService
 } from '../services/game.service.js';
 
 
@@ -107,6 +108,39 @@ export const searchGames = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Search Games Controller Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// GET /api/games/:id -> ดึงเกมตาม ID
+export const getGameById = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id; // 1. ดึง id ออกมาใส่ตัวแปรก่อน
+
+    // ====================== โค้ดที่ต้องเพิ่มเข้ามา ======================
+    // 2. เพิ่มการตรวจสอบว่ามี id ส่งมาใน parameter หรือไม่
+    if (!id) {
+      return res.status(400).json({ message: 'Game ID is required.' });
+    }
+    // หลังจากผ่าน check นี้ไปได้ TypeScript จะรู้ว่า 'id' เป็น string แน่นอน
+    // ================================================================
+
+    const gameId = parseInt(id, 10); // 3. ตอนนี้ Error จะหายไปแล้ว
+
+    if (isNaN(gameId)) {
+      return res.status(400).json({ message: 'Invalid game ID.' });
+    }
+
+    const game = await getGameByIdService(gameId);
+
+    if (!game) {
+      return res.status(404).json({ message: 'Game not found.' });
+    }
+
+    return res.status(200).json(game);
+
+  } catch (error) {
+    console.error('Get Game By ID Controller Error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
