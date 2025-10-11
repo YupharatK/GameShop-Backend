@@ -5,7 +5,8 @@ import {
   getAllGamesService, 
   updateGameService,
   deleteGameService, 
-  getGamesByUserService
+  getGamesByUserService,
+  searchGamesService
 } from '../services/game.service.js';
 
 
@@ -88,6 +89,24 @@ export const getUserGames = async (req: Request, res: Response) => {
     return res.status(200).json(games);
   } catch (e) {
     console.error('getUserGames error:', e);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// GET /api/games/search?q=term -> ค้นหาเกม
+export const searchGames = async (req: Request, res: Response) => {
+  try {
+    const searchTerm = req.query.q as string;
+
+    if (!searchTerm) {
+      return res.status(200).json([]); // ถ้าไม่มีคำค้นหา ส่ง array ว่างกลับไป
+    }
+
+    const games = await searchGamesService(searchTerm);
+    return res.status(200).json(games);
+
+  } catch (error) {
+    console.error('Search Games Controller Error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

@@ -118,3 +118,18 @@ export const getGamesByUserService = async (userId: number) => {
   const [rows] = await pool.query(sql, [userId]);
   return rows; // [{ id, name, ..., game_type, purchase_date }, ...]
 };
+
+// ฟังก์ชันสำหรับค้นหาเกมตามชื่อ
+export const searchGamesService = async (searchTerm: string) => {
+  // ใช้ LIKE '%...%' เพื่อค้นหาชื่อเกมที่มีคำนั้นๆ อยู่
+  const sql = "SELECT g.*, gt.name as genre_name FROM games g JOIN game_types gt ON g.type_id = gt.id WHERE g.name LIKE ?";
+  const queryParam = `%${searchTerm}%`;
+
+  try {
+    const [rows] = await pool.query(sql, [queryParam]);
+    return rows;
+  } catch (error) {
+    console.error("Error searching games:", error);
+    throw error;
+  }
+};
