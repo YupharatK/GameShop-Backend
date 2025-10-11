@@ -24,3 +24,27 @@ export const getUserTransactionsService = async (userId: number) => {
     throw error;
   }
 };
+
+export const getAllTransactionsService = async () => {
+  // ใช้ SQL JOIN เพื่อดึงข้อมูลจากตาราง transactions และ users พร้อมกัน
+  const sql = `
+    SELECT
+      t.id,
+      t.type,
+      t.details,
+      t.amount,
+      t.created_at as date,
+      u.username,
+      u.email
+    FROM transactions t
+    JOIN users u ON t.user_id = u.id
+    ORDER BY t.created_at DESC
+  `;
+  try {
+    const [rows] = await pool.query(sql);
+    return rows;
+  } catch (error) {
+    console.error("Error fetching all transactions:", error);
+    throw error;
+  }
+};

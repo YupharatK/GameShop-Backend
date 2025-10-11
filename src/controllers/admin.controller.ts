@@ -1,6 +1,6 @@
 // src/controllers/admin.controller.ts
 import type { Request, Response } from 'express';
-import { getAllUsersService, getUserTransactionsService } from '../services/admin.service.js';
+import { getAllUsersService, getUserTransactionsService, getAllTransactionsService} from '../services/admin.service.js';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -31,6 +31,17 @@ export const getUserTransactions = async (req: Request, res: Response) => {
     const transactions = await getUserTransactionsService(userId);
     return res.status(200).json(transactions);
   } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+export const getAllTransactions = async (req: Request, res: Response) => {
+  try {
+    const transactions = await getAllTransactionsService();
+    return res.status(200).json(transactions);
+  } catch (error) {
+    // Log a more descriptive error on the server if possible
+    console.error("Controller error fetching all transactions:", error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
