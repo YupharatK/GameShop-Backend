@@ -31,7 +31,6 @@ export const getAllTransactionsService = async () => {
     SELECT
       t.id,
       t.type,
-      t.details,
       t.amount,
       t.created_at as date,
       u.username,
