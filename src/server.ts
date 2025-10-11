@@ -9,6 +9,7 @@ import rankingRoutes from './routes/ranking.routes.js';
 import gameTypeRoutes from './routes/gameType.routes.js';
 import walletRoutes from './routes/wallet.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 // import userRoutes from './routes/user.routes'; // ถ้ามี
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/rankings', rankingRoutes);
 app.use('/api/gametypes', gameTypeRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.send('<h1>Welcome to the GameShop API!</h1><p>Server is running correctly.</p>');
