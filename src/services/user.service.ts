@@ -121,3 +121,22 @@ export const updateUserService = async (userId: number, dataToUpdate: UserUpdate
     throw dbError;
   }
 };
+
+export const getOwnedGameIdsByUserIdService = async (userId: number): Promise<number[]> => {
+  // Query ข้อมูล game_id จากตาราง UserLibrary ตาม Schema ของคุณ
+  const sql = `
+    SELECT game_id 
+    FROM UserLibrary 
+    WHERE user_id = ?
+  `;
+
+  try {
+    const [rows] = await pool.query(sql, [userId]);
+    // ผลลัพธ์จะเป็น array of objects เช่น [{ game_id: 1 }, { game_id: 5 }]
+    // เราจะแปลงให้เป็น array of numbers [1, 5]
+    return (rows as any[]).map(row => row.game_id);
+  } catch (error) {
+    console.error(`Error fetching owned games for user ${userId}:`, error);
+    throw error;
+  }
+};
