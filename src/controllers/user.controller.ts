@@ -5,7 +5,7 @@ import { updateUserService } from '../services/user.service.js';
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
     // 1. ดึง userId จาก middleware (req.user ที่เราแนบเข้าไป)
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized access.' });
     }

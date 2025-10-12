@@ -4,7 +4,7 @@ import { getUserWalletDataService, topupWalletService } from '../services/wallet
 
 export const getWalletData = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized.' });
     }
@@ -17,7 +17,7 @@ export const getWalletData = async (req: Request, res: Response) => {
 
 export const topupWallet = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const { amount } = req.body;
 
     if (!userId) {

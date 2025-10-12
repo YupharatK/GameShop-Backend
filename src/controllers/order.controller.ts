@@ -4,7 +4,7 @@ import { createOrderService } from '../services/order.service.js';
 
 export const checkout = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id; // สมมติว่า userId ถูกเพิ่มโดย auth middleware
     const { items } = req.body;
 
     if (!userId) return res.status(401).json({ message: "Unauthorized." });
