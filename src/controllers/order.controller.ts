@@ -13,6 +13,7 @@ export const checkout = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Cart is empty' });
     }
 
+    // ดึง userId จาก auth middleware (หรือ header สำรอง)
     const userId = (req as any)?.user?.id ?? Number(req.headers['x-user-id']);
     if (!Number.isFinite(userId)) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -20,16 +21,28 @@ export const checkout = async (req: Request, res: Response) => {
 
     const result = await createOrderService(userId, items, discountCode);
     return res.status(200).json(result);
+
   } catch (err: any) {
     console.error('[checkout] error:', err);
     const msg = err?.message || 'Internal Server Error';
-    const status =
+
+    // จัดกลุ่ม error ให้ชัดขึ้น
+    if (
+      msg === 'Cart is empty' ||
       msg === 'Insufficient funds.' ||
-      msg.startsWith('Invalid discount') ||
-      msg.includes('Cart is empty')
-        ? 400
-        : 500;
-    return res.status(status).json({ message: msg });
+      msg === 'Invalid discount code.' ||
+      msg === 'This discount code has reached its maximum usage.' ||
+      msg === 'This user already used this discount code.'
+    ) {
+      return res.status(400).json({ message: msg });
+    }
+
+    // กรณี permission
+    if (msg === 'Unauthorized' || msg === 'Forbidden.') {
+      return res.status(msg === 'Unauthorized' ? 401 : 403).json({ message: msg });
+    }
+
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
@@ -53,16 +66,28 @@ export const applyDiscountToOrderController = async (req: Request, res: Response
 
     const result = await applyDiscountToExistingOrderService(orderId, discountCode, userId);
     return res.status(200).json(result);
+
   } catch (err: any) {
     console.error('[applyDiscountToOrderController] error:', err);
     const msg = err?.message || 'Internal Server Error';
-    const status =
+
+    if (
       msg === 'Order not found.' ||
-      msg === 'Forbidden.' ||
-      msg.startsWith('Invalid discount') ||
-      msg.includes('maximum usage')
-        ? 400
-        : 500;
-    return res.status(status).json({ message: msg });
+      msg === 'Invalid order id' ||
+      msg === 'Invalid discount code.' ||
+      msg === 'This discount code has reached its maximum usage.' ||
+      msg === 'This user already used this discount code.'
+    ) {
+      return res.status(400).json({ message: msg });
+    }
+
+    if (msg === 'Unauthorized') {
+      return res.status(401).json({ message: msg });
+    }
+    if (msg === 'Forbidden.') {
+      return res.status(403).json({ message: msg });
+    }
+
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
