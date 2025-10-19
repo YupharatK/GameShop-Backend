@@ -47,3 +47,4 @@ export const getAllTransactionsService = async () => {
     throw error;
   }
 };
+
