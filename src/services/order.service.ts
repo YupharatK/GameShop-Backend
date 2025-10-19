@@ -3,8 +3,8 @@ import pool from '../config/database.js';
 
 export interface CheckoutItem {
   id: number | string;
-  price: number | string;   // FE อาจส่งมาเป็น string
-  quantity?: number;        // ถ้ามีระบบจำนวน (ดีฟอลต์ = 1)
+  price: number | string;
+  quantity?: number; // หากไม่มี ให้ถือว่า = 1
 }
 
 export interface CreateOrderResult {
@@ -18,6 +18,17 @@ export interface CreateOrderResult {
   totalCharged: number;
 }
 
+/**
+ * สร้างออเดอร์ + คิดส่วนลด (ไม่บันทึกรายละเอียดส่วนลดลง orders เพราะไม่มีคอลัมน์)
+ * - ล็อก wallet ผู้ใช้
+ * - ตรวจ funds พอไหม
+ * - ตัดเงิน
+ * - INSERT orders(user_id, total_price)
+ * - INSERT order_items, UserLibrary
+ * - UPDATE rankings
+ * - INSERT transactions
+ * - (เลือกได้) อัปเดต used_count โค้ดส่วนลด ณ ตอนชำระเงินจริง
+ */
 export const createOrderService = async (
   userId: number,
   items: CheckoutItem[],
@@ -41,7 +52,7 @@ export const createOrderService = async (
       return sum + price * qty;
     }, 0);
 
-    // 2) ตรวจส่วนลด (ถ้ามี)
+    // 2) ตรวจส่วนลด (ไม่เก็บลง orders เพราะ schema ไม่มีคอลัมน์)
     let appliedCode: string | null = null;
     let discountPercent = 0;
     let discountAmount = 0;
@@ -53,11 +64,16 @@ export const createOrderService = async (
          WHERE code = ? FOR UPDATE`,
         [discountCode]
       );
-      if (dcRows.length === 0) throw new Error('Invalid discount code.');
+
+      if (dcRows.length === 0) {
+        throw new Error('Invalid discount code.');
+      }
 
       const dc = dcRows[0];
       const remaining = (dc.max_usage ?? 0) - (dc.used_count ?? 0);
-      if (remaining <= 0) throw new Error('This discount code has reached its maximum usage.');
+      if (remaining <= 0) {
+        throw new Error('This discount code has reached its maximum usage.');
+      }
 
       appliedCode = dc.code;
       discountPercent = Number(dc.discount_percent) || 0;
@@ -67,7 +83,7 @@ export const createOrderService = async (
     // 3) total ที่ต้องตัดเงินจริง
     const totalToCharge = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
 
-    // 4) ล็อกกระเป๋าเงินผู้ใช้
+    // 4) ล็อก wallet ผู้ใช้
     const [userRows]: any[] = await conn.query(
       'SELECT wallet_balance FROM users WHERE id = ? FOR UPDATE',
       [userId]
@@ -81,16 +97,14 @@ export const createOrderService = async (
     const newBalance = Math.round((currentBalance - totalToCharge) * 100) / 100;
     await conn.query('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, userId]);
 
-    // 6) สร้างออเดอร์
+    // 6) สร้างออเดอร์ (❗️INSERT เฉพาะคอลัมน์ที่มี)
     const [orderResult]: any = await conn.query(
-      `INSERT INTO orders
-         (user_id, total_price, discount_code, discount_percent, discount_amount)
-       VALUES (?, ?, ?, ?, ?)`,
-      [userId, totalToCharge, appliedCode, discountPercent, discountAmount]
+      `INSERT INTO orders (user_id, total_price) VALUES (?, ?)`,
+      [userId, totalToCharge]
     );
     const newOrderId: number = orderResult.insertId;
 
-    // 7) เพิ่ม order_items + UserLibrary + rankings
+    // 7) รายการย่อย + library + rankings
     for (const it of items) {
       const gameId = it.id;
       const qty = it.quantity != null ? Number(it.quantity) : 1;
@@ -122,7 +136,9 @@ export const createOrderService = async (
     }
 
     // 9) บันทึกธุรกรรมเงิน
-    const desc = `Purchase of ${items.length} game(s)${appliedCode ? ` with discount ${appliedCode} (-${discountPercent}%)` : ''}`;
+    const desc = `Purchase of ${items.length} game(s)${
+      appliedCode ? ` with discount ${appliedCode} (-${discountPercent}%)` : ''
+    }`;
     await conn.query(
       "INSERT INTO transactions (user_id, type, amount, description) VALUES (?, 'PURCHASE', ?, ?)",
       [userId, -totalToCharge, desc]
@@ -159,8 +175,11 @@ export interface ApplyDiscountResult {
 }
 
 /**
- * Apply โค้ดให้ "ออเดอร์ที่มีอยู่แล้ว" และอัปเดต orders.total_price ทันที
- * มีการเช็คกรรมสิทธิ์ด้วย userId
+ * กรณีมี "ออเดอร์ถูกสร้างไว้แล้ว" และกด Apply ส่วนลดภายหลัง:
+ * - รวม subtotal จาก order_items
+ * - ตรวจโค้ด (FOR UPDATE)
+ * - อัปเดตเฉพาะ orders.total_price (❗️เพราะไม่มีคอลัมน์ discount_*)
+ * - (ตัวเลือก) เพิ่ม used_count ของส่วนลด
  */
 export const applyDiscountToExistingOrderService = async (
   orderId: number,
@@ -185,7 +204,7 @@ export const applyDiscountToExistingOrderService = async (
     );
     const subtotal = Number(sumRows[0]?.subtotal ?? 0);
 
-    // 3) ล็อกส่วนลด
+    // 3) ตรวจโค้ดส่วนลด
     const [dcRows]: any[] = await conn.query(
       `SELECT id, code, discount_percent, max_usage, used_count
        FROM discount_codes
@@ -202,15 +221,13 @@ export const applyDiscountToExistingOrderService = async (
     const discountAmount = Math.max(0, Math.round((subtotal * discountPercent / 100) * 100) / 100);
     const totalPrice = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
 
-    // 4) อัปเดต orders
+    // 4) อัปเดต orders.total_price (❗️ไม่มีคอลัมน์ discount_*)
     await conn.query(
-      `UPDATE orders
-         SET discount_code = ?, discount_percent = ?, discount_amount = ?, total_price = ?
-       WHERE id = ? AND user_id = ?`,
-      [dc.code, discountPercent, discountAmount, totalPrice, orderId, userId]
+      `UPDATE orders SET total_price = ? WHERE id = ? AND user_id = ?`,
+      [totalPrice, orderId, userId]
     );
 
-    // 5) (ตัวเลือก) ใช้โค้ดทันที (ถ้าอยากไปรอถึงตอนชำระเงินจริง ให้ย้ายไปจุดชำระเงิน)
+    // 5) (ตัวเลือก) ตัดโควต้าโค้ดทันที
     await conn.query(
       'UPDATE discount_codes SET used_count = used_count + 1 WHERE id = ?',
       [dc.id]

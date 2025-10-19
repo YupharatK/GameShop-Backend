@@ -13,7 +13,6 @@ export const checkout = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Cart is empty' });
     }
 
-    // userId จาก auth middleware (เช่น req.user.id) หรือ header ชั่วคราว
     const userId = (req as any)?.user?.id ?? Number(req.headers['x-user-id']);
     if (!Number.isFinite(userId)) {
       return res.status(401).json({ message: 'Unauthorized' });
