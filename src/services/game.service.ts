@@ -157,3 +157,49 @@ export const getGameByIdService = async (gameId: number) => {
     throw error;
   }
 };
+
+export const getTopSellersFromOrderItemsService = async (limit = 5, days?: number) => {
+  const useWindow = Number.isFinite(days) && Number(days) > 0;
+
+  const sqlAllTime = `
+    SELECT
+      g.id,
+      g.name,
+      g.image_url,
+      g.price,
+      gt.name AS genre_name,
+      COUNT(oi.id)              AS qty_sold,
+      COALESCE(SUM(oi.price),0) AS revenue
+    FROM order_items oi
+    JOIN games g       ON g.id = oi.game_id
+    JOIN game_types gt ON gt.id = g.type_id
+    GROUP BY g.id
+    ORDER BY qty_sold DESC, g.created_at DESC
+    LIMIT ?
+  `;
+
+  const sqlWindow = `
+    SELECT
+      g.id,
+      g.name,
+      g.image_url,
+      g.price,
+      gt.name AS genre_name,
+      COUNT(oi.id)              AS qty_sold,
+      COALESCE(SUM(oi.price),0) AS revenue
+    FROM order_items oi
+    JOIN orders o     ON o.id = oi.order_id
+    JOIN games g      ON g.id = oi.game_id
+    JOIN game_types gt ON gt.id = g.type_id
+    WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    GROUP BY g.id
+    ORDER BY qty_sold DESC, g.created_at DESC
+    LIMIT ?
+  `;
+
+  const [rows] = useWindow
+    ? await pool.query(sqlWindow, [Number(days), Number(limit)])
+    : await pool.query(sqlAllTime, [Number(limit)]);
+
+  return rows;
+};

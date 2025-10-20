@@ -7,7 +7,8 @@ import {
   deleteGameService, 
   getGamesByUserService,
   searchGamesService,
-  getGameByIdService
+  getGameByIdService,
+  getTopSellersFromOrderItemsService
 } from '../services/game.service.js';
 
 
@@ -141,6 +142,18 @@ export const getGameById = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get Game By ID Controller Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+export const getTopSellers = async (req: Request, res: Response) => {
+  try {
+    const limit = Number(req.query.limit ?? 5);
+    const days  = req.query.days !== undefined ? Number(req.query.days) : undefined; // ออปชัน: ช่วงวัน
+    const rows = await getTopSellersFromOrderItemsService(limit, days);
+    return res.status(200).json(rows);
+  } catch (e) {
+    console.error('[games] getTopSellers error:', e);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

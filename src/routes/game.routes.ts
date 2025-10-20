@@ -1,6 +1,6 @@
 // src/routes/game.routes.ts
 import { Router } from 'express';
-import { createGame, getAllGames, updateGame, deleteGame, getUserGames,searchGames, getGameById} from '../controllers/game.controller.js';
+import { createGame, getAllGames, updateGame, deleteGame, getUserGames,searchGames, getGameById, getTopSellers} from '../controllers/game.controller.js';
 import { adminMiddleware } from '../middleware/admin.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 
@@ -34,4 +34,5 @@ router.get('/:id', getGameById);
 
 router.get('/users/:userId', getUserGames);
 
+router.get('/top-sellers', getTopSellers);
 export default router;
