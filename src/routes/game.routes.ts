@@ -1,38 +1,38 @@
 // src/routes/game.routes.ts
 import { Router } from 'express';
-import { createGame, getAllGames, updateGame, deleteGame, getUserGames,searchGames, getGameById, getTopSellers} from '../controllers/game.controller.js';
+import {
+  createGame,
+  getAllGames,
+  updateGame,
+  deleteGame,
+  getUserGames,
+  searchGames,
+  getGameById,
+  getTopSellers
+} from '../controllers/game.controller.js';
 import { adminMiddleware } from '../middleware/admin.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 
 const router = Router();
 
-// POST /api/games/
-// 1. adminMiddleware: ตรวจสอบว่าเป็น Admin หรือไม่
-// 2. upload.single('game_image'): รับไฟล์รูปภาพชื่อ 'game_image'
-// 3. createGame: ทำงานเมื่อผ่าน Middleware ทั้งสองแล้ว
-router.post(
-  '/',
-  adminMiddleware,
-  upload.single('game_image'),
-  createGame
-);
+// สร้างเกม (admin)
+router.post('/', adminMiddleware, upload.single('game_image'), createGame);
 
-// GET /api/games/ -> ดึงเกมทั้งหมด
+// ดึงทั้งหมด
 router.get('/', getAllGames);
 
-// GET /api/games/search?q=term -> ค้นหาเกม
+// ค้นหา
 router.get('/search', searchGames);
 
-// PATCH /api/games/:id -> อัปเดตเกม
-router.patch('/:id', adminMiddleware, upload.single('game_image'), updateGame);
+// ✅ เส้นทาง “เฉพาะ” ต้องมาอยู่เหนือ `/:id`
+router.get('/users/:userId', getUserGames);
+router.get('/top-sellers', getTopSellers);
 
-// DELETE /api/games/:id -> ลบเกม
+// อัปเดต/ลบ (admin)
+router.patch('/:id', adminMiddleware, upload.single('game_image'), updateGame);
 router.delete('/:id', adminMiddleware, deleteGame);
 
-// GET /api/games/:id -> ดึงข้อมูลเกมโดย ID
+// ✅ วางสุดท้าย: ดึงตาม id
 router.get('/:id', getGameById);
 
-router.get('/users/:userId', getUserGames);
-
-router.get('/top-sellers', getTopSellers);
 export default router;
