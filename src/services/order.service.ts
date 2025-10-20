@@ -23,7 +23,6 @@ export async function createOrderService(
   discountAmount: number;
   totalToCharge: number;
   orderId: number;
-  // newBalance?: number; // ถ้าคุณต้องการคืนค่าด้วย
 }> {
   const conn = await pool.getConnection();
   try {
@@ -34,17 +33,18 @@ export async function createOrderService(
 
     // 2) ใช้ส่วนลด (จะเพิ่ม used_count ใน discount_codes แบบอะตอมมิก)
     let percent = 0;
-    if (discountCode) {
-      const applied = await consumeDiscountByCodeTx(conn, String(discountCode), userId);
-      percent = applied.percent; // ถ้าโค้ดไม่ valid / เต็มสิทธิ์ / user ใช้ซ้ำ จะ throw ออกไป
+    const code = (discountCode ?? '').toString().trim();
+    if (code.length > 0) {
+      const applied = await consumeDiscountByCodeTx(conn, code, userId);
+      percent = Number(applied.percent) || 0; // ถ้าโค้ดไม่ valid/เต็มสิทธิ์/ผู้ใช้เดิม → ฟังก์ชันจะ throw
     }
 
     const discountAmount = round2((subtotal * percent) / 100);
     const totalToCharge  = Math.max(0, round2(subtotal - discountAmount));
 
-    // ====== ส่วนตัวอย่างต่อไปนี้ ปรับให้ตรง schema ของคุณ ======
+    // ====== ส่วนต่อไปนี้ปรับให้ตรง schema ของคุณ ======
 
-    // 3) ล็อกและตรวจเงินพอ
+    // 3) (ออปชัน) ล็อกและตรวจเงินพอ
     // const [uRows]: any[] = await conn.query(
     //   `SELECT wallet_balance FROM users WHERE id = ? FOR UPDATE`,
     //   [userId]
@@ -83,7 +83,7 @@ export async function createOrderService(
       );
     }
 
-    // 6) ทำรายการธุรกรรมกระเป๋าเงิน (บันทึกเป็นลบ)
+    // 6) บันทึกธุรกรรม (ยอดลบ)
     await conn.query(
       `INSERT INTO transactions (user_id, type, amount, description)
        VALUES (?, 'PURCHASE', ?, ?)`,
@@ -99,7 +99,6 @@ export async function createOrderService(
       discountAmount,
       totalToCharge,
       orderId,
-      // newBalance,
     };
   } catch (e) {
     await conn.rollback();
@@ -112,7 +111,7 @@ export async function createOrderService(
 /**
  * ใช้โค้ดส่วนลดกับ "ออเดอร์ที่มีอยู่แล้ว"
  * - ล็อก order (FOR UPDATE) + ตรวจว่าเป็นของ user นี้
- * - ใช้ consumeDiscountByCodeTx เพิ่อเพิ่ม used_count + กันซ้ำ/กันเกินสิทธิ์
+ * - ใช้ consumeDiscountByCodeTx เพื่อตัดสิทธิ์ + กันซ้ำ/กันเกินสิทธิ์
  * - คำนวณส่วนลดจาก "ผลรวมราคาใน order_items" แล้วอัปเดต orders.total_price
  */
 export async function applyDiscountToExistingOrderService(
@@ -149,8 +148,11 @@ export async function applyDiscountToExistingOrderService(
     const subtotal = Number(sumRows[0]?.subtotal ?? 0);
 
     // 3) ใช้โค้ดส่วนลด (จะเพิ่ม used_count ให้อัตโนมัติที่ discount_codes)
-    const applied = await consumeDiscountByCodeTx(conn, String(discountCode), userId);
-    const discountPercent = applied.percent;
+    const code = (discountCode ?? '').toString().trim();
+    if (!code) throw new Error('discountCode is required');
+
+    const applied = await consumeDiscountByCodeTx(conn, code, userId);
+    const discountPercent = Number(applied.percent) || 0;
 
     const discountAmount = Math.max(0, round2((subtotal * discountPercent) / 100));
     const totalPrice     = Math.max(0, round2(subtotal - discountAmount));
