@@ -45,15 +45,15 @@ export async function createOrderService(
     // ====== ส่วนต่อไปนี้ปรับให้ตรง schema ของคุณ ======
 
     // 3) (ออปชัน) ล็อกและตรวจเงินพอ
-    // const [uRows]: any[] = await conn.query(
-    //   `SELECT wallet_balance FROM users WHERE id = ? FOR UPDATE`,
-    //   [userId]
-    // );
-    // if (!uRows.length) throw new Error('User not found.');
-    // const currentBalance = Number(uRows[0].wallet_balance);
-    // if (currentBalance < totalToCharge) throw new Error('Insufficient funds.');
-    // const newBalance = round2(currentBalance - totalToCharge);
-    // await conn.query(`UPDATE users SET wallet_balance = ? WHERE id = ?`, [newBalance, userId]);
+    const [uRows]: any[] = await conn.query(
+      `SELECT wallet_balance FROM users WHERE id = ? FOR UPDATE`,
+      [userId]
+    );
+    if (!uRows.length) throw new Error('User not found.');
+    const currentBalance = Number(uRows[0].wallet_balance);
+    if (currentBalance < totalToCharge) throw new Error('Insufficient funds.');
+    const newBalance = round2(currentBalance - totalToCharge);
+    await conn.query(`UPDATE users SET wallet_balance = ? WHERE id = ?`, [newBalance, userId]);
 
     // 4) สร้างออเดอร์
     const [oRes]: any = await conn.query(
