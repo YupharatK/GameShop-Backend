@@ -157,7 +157,7 @@ export const getGameByIdService = async (gameId: number) => {
   }
 };
 
-export const getTopSellersFromOrderItemsService = async (limit = 5, days?: number) => {
+export const getTopSellersFromOrderItemsService = async (limit = 5, days: unknown) => {
   const useWindow = Number.isFinite(days) && Number(days) > 0;
 
   const sqlAllTime = `
@@ -167,8 +167,8 @@ export const getTopSellersFromOrderItemsService = async (limit = 5, days?: numbe
       g.image_url,
       g.price,
       gt.name AS genre_name,
-      COUNT(oi.id)              AS qty_sold,
-      COALESCE(SUM(oi.price),0) AS revenue
+      COUNT(oi.id)              AS qty_sold,     -- ✅ จำนวนที่ขายได้
+      COALESCE(SUM(oi.price),0) AS revenue       -- ✅ รายได้รวม
     FROM order_items oi
     JOIN games g       ON g.id = oi.game_id
     JOIN game_types gt ON gt.id = g.type_id
