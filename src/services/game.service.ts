@@ -54,7 +54,6 @@ export const getAllGamesService = async () => {
   const [rows] = await pool.query(sql);
   return rows;
 };
-
 // ฟังก์ชันสำหรับอัปเดตเกม
 export const updateGameService = async (gameId: number, dataToUpdate: any) => {
   // ฟังก์ชันนี้จะคล้ายกับ updateUserService
